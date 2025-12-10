@@ -33,7 +33,8 @@ Be concise but thorough. If you don't know something, say so honestly."""
     history_context = ""
     if conversation_history and len(conversation_history) > 0:
         history_parts = ["Previous conversation:"]
-        for msg in conversation_history[-10:]:  # Last 10 messages for context
+        # Use only last 6 messages (3 exchanges) for context to reduce overhead
+        for msg in conversation_history[-6:]:
             role = msg.get("role", "").capitalize()
             content = msg.get("content", "")
             history_parts.append(f"{role}: {content}")
@@ -145,7 +146,7 @@ class GraphService:
         # Get conversation history
         conversation_history = []
         if conversation_id:
-            conversation_history = session_service.get_conversation_history(conversation_id)
+            conversation_history = session_service.get_conversation_history(conversation_id, limit=6)
         
         initial_state: ChatState = {
             "conversation_id": conv_id,
@@ -184,7 +185,7 @@ class GraphService:
         # Get conversation history
         conversation_history = []
         if conversation_id:
-            conversation_history = session_service.get_conversation_history(conversation_id)
+            conversation_history = session_service.get_conversation_history(conversation_id, limit=6)
         
         # Get context if RAG is enabled
         context = ""
