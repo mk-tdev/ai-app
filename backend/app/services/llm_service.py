@@ -3,7 +3,7 @@ import logging
 from typing import AsyncGenerator, Optional, Any
 
 from app.config import get_settings
-from app.services.providers import create_provider, BaseLLMProvider
+from app.services.providers import create_provider, LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class LLMService:
     """Service for managing LLM operations with pluggable providers."""
     
     _instance: Optional["LLMService"] = None
-    _provider: Optional[BaseLLMProvider] = None
+    _provider: Optional[LLMProvider] = None
     
     def __new__(cls) -> "LLMService":
         if cls._instance is None:

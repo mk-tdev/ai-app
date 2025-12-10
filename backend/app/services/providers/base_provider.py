@@ -1,31 +1,40 @@
-"""Base provider interface for LLM implementations."""
-from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Optional, Any
+"""Protocol-based provider interface for LLM implementations.
+
+This module defines a Protocol (PEP 544) for LLM providers, enabling structural
+subtyping rather than nominal subtyping. Providers don't need to explicitly inherit
+from this Protocol - they just need to implement the required methods.
+"""
+from typing import Protocol, AsyncGenerator, Optional, Any, runtime_checkable
 
 
-class BaseLLMProvider(ABC):
-    """Abstract base class defining the interface for all LLM providers."""
+@runtime_checkable
+class LLMProvider(Protocol):
+    """Protocol defining the interface for LLM providers.
+    
+    This uses Python's Protocol for structural typing (duck typing with type hints).
+    Any class that implements these methods will be considered a valid LLMProvider,
+    even without explicit inheritance.
+    
+    The @runtime_checkable decorator allows isinstance() checks at runtime.
+    """
     
     @property
-    @abstractmethod
     def is_loaded(self) -> bool:
         """Check if model is loaded and ready to use.
         
         Returns:
             bool: True if model is loaded, False otherwise.
         """
-        pass
+        ...
     
-    @abstractmethod
     def load_model(self) -> bool:
         """Load the LLM model.
         
         Returns:
             bool: True if model loaded successfully, False otherwise.
         """
-        pass
+        ...
     
-    @abstractmethod
     def generate(self, prompt: str, max_tokens: Optional[int] = None) -> str:
         """Generate a response from the LLM.
         
@@ -39,9 +48,8 @@ class BaseLLMProvider(ABC):
         Raises:
             RuntimeError: If model is not loaded.
         """
-        pass
+        ...
     
-    @abstractmethod
     async def generate_stream(
         self, prompt: str, max_tokens: Optional[int] = None
     ) -> AsyncGenerator[str, None]:
@@ -57,9 +65,8 @@ class BaseLLMProvider(ABC):
         Raises:
             RuntimeError: If model is not loaded.
         """
-        pass
+        ...
     
-    @abstractmethod
     def get_langchain_llm(self) -> Any:
         """Get LangChain-compatible LLM wrapper for chain integration.
         
@@ -69,4 +76,4 @@ class BaseLLMProvider(ABC):
         Raises:
             RuntimeError: If model is not loaded.
         """
-        pass
+        ...

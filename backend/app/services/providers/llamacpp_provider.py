@@ -8,12 +8,11 @@ from langchain_community.llms import LlamaCpp
 from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
 
 from app.config import get_settings
-from app.services.providers.base_provider import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
 
 
-class LlamaCppProvider(BaseLLMProvider):
+class LlamaCppProvider:
     """LLM provider using llama-cpp-python for GGUF models."""
     
     def __init__(self):

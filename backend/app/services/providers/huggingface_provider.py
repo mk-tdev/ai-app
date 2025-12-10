@@ -7,12 +7,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 import torch
 
 from app.config import get_settings
-from app.services.providers.base_provider import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
 
 
-class HuggingFaceProvider(BaseLLMProvider):
+class HuggingFaceProvider:
     """LLM provider using HuggingFace transformers for local inference."""
     
     def __init__(self):

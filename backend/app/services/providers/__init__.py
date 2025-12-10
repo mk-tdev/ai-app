@@ -3,7 +3,7 @@ import logging
 from typing import Literal
 
 from app.config import get_settings
-from app.services.providers.base_provider import BaseLLMProvider
+from app.services.providers.base_provider import LLMProvider
 from app.services.providers.llamacpp_provider import LlamaCppProvider
 from app.services.providers.ollama_provider import OllamaProvider
 from app.services.providers.huggingface_provider import HuggingFaceProvider
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 ProviderType = Literal["llamacpp", "ollama", "huggingface"]
 
 
-def create_provider(provider_type: str | None = None) -> BaseLLMProvider:
+def create_provider(provider_type: str | None = None) -> LLMProvider:
     """Factory function to create the appropriate LLM provider.
     
     Args:
@@ -22,7 +22,7 @@ def create_provider(provider_type: str | None = None) -> BaseLLMProvider:
                       Options: "llamacpp", "ollama", "huggingface"
     
     Returns:
-        BaseLLMProvider: Instance of the requested provider.
+        LLMProvider: Instance of the requested provider (satisfies Protocol).
         
     Raises:
         ValueError: If provider_type is not recognized.
@@ -47,7 +47,7 @@ def create_provider(provider_type: str | None = None) -> BaseLLMProvider:
 
 
 __all__ = [
-    "BaseLLMProvider",
+    "LLMProvider",
     "LlamaCppProvider",
     "OllamaProvider",
     "HuggingFaceProvider",

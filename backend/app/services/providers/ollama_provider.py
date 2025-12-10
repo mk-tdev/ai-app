@@ -5,12 +5,11 @@ from typing import AsyncGenerator, Optional
 from langchain_ollama import OllamaLLM
 
 from app.config import get_settings
-from app.services.providers.base_provider import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
 
 
-class OllamaProvider(BaseLLMProvider):
+class OllamaProvider:
     """LLM provider using Ollama for locally running models."""
     
     def __init__(self):
