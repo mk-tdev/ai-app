@@ -1,23 +1,18 @@
-"""LLM Service using llama-cpp-python."""
+"""LLM Service with multi-provider support."""
 import logging
-from pathlib import Path
-from typing import AsyncGenerator, Optional
-
-from llama_cpp import Llama
-from langchain_community.llms import LlamaCpp
-from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
+from typing import AsyncGenerator, Optional, Any
 
 from app.config import get_settings
+from app.services.providers import create_provider, BaseLLMProvider
 
 logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """Service for managing LLM operations with llama-cpp-python."""
+    """Service for managing LLM operations with pluggable providers."""
     
     _instance: Optional["LLMService"] = None
-    _llm: Optional[Llama] = None
-    _langchain_llm: Optional[LlamaCpp] = None
+    _provider: Optional[BaseLLMProvider] = None
     
     def __new__(cls) -> "LLMService":
         if cls._instance is None:
@@ -27,91 +22,83 @@ class LLMService:
     @property
     def is_loaded(self) -> bool:
         """Check if model is loaded."""
-        return self._llm is not None
+        return self._provider is not None and self._provider.is_loaded
     
     def load_model(self) -> bool:
-        """Load the LLM model."""
+        """Load the LLM model using the configured provider."""
         settings = get_settings()
-        model_path = Path(settings.model_path)
-        
-        if not model_path.exists():
-            logger.warning(f"Model not found at {model_path}. Please download a GGUF model.")
-            return False
         
         try:
-            logger.info(f"Loading model from {model_path}...")
+            # Create provider based on configuration
+            logger.info(f"Initializing {settings.provider_type} provider...")
+            self._provider = create_provider()
             
-            # Load native llama-cpp model for direct use
-            self._llm = Llama(
-                model_path=str(model_path),
-                n_ctx=settings.n_ctx,
-                n_gpu_layers=settings.n_gpu_layers,
-                n_threads=settings.n_threads,
-                verbose=settings.verbose_llm,  # Controls ggml, metal, kv_cache logs
-            )
+            # Load the model
+            success = self._provider.load_model()
             
-            # Load LangChain wrapper for integration
-            callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
-            self._langchain_llm = LlamaCpp(
-                model_path=str(model_path),
-                n_ctx=settings.n_ctx,
-                n_gpu_layers=settings.n_gpu_layers,
-                n_threads=settings.n_threads,
-                callback_manager=callback_manager,
-                verbose=settings.verbose_llm,  # Controls ggml, metal, kv_cache logs
-                streaming=True,
-            )
-            
-            logger.info("Model loaded successfully!")
-            return True
+            if success:
+                logger.info(f"Provider {settings.provider_type} initialized successfully!")
+            else:
+                logger.error(f"Failed to initialize provider {settings.provider_type}")
+                
+            return success
             
         except Exception as e:
-            logger.error(f"Failed to load model: {e}")
+            logger.error(f"Failed to create provider: {e}")
             return False
     
     def generate(self, prompt: str, max_tokens: Optional[int] = None) -> str:
-        """Generate a response from the LLM."""
-        if not self._llm:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+        """Generate a response from the LLM.
         
-        settings = get_settings()
-        max_tokens = max_tokens or settings.max_tokens
+        Args:
+            prompt: The input prompt for the model.
+            max_tokens: Maximum number of tokens to generate.
+            
+        Returns:
+            str: The generated response.
+            
+        Raises:
+            RuntimeError: If model is not loaded.
+        """
+        if not self._provider:
+            raise RuntimeError("Provider not initialized. Call load_model() first.")
         
-        response = self._llm(
-            prompt,
-            max_tokens=max_tokens,
-            temperature=settings.temperature,
-            stop=["User:", "\n\nUser:", "Human:", "\n\nHuman:"],
-        )
-        
-        return response["choices"][0]["text"].strip()
+        return self._provider.generate(prompt, max_tokens)
     
-    async def generate_stream(self, prompt: str, max_tokens: Optional[int] = None) -> AsyncGenerator[str, None]:
-        """Generate a streaming response from the LLM."""
-        if not self._llm:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+    async def generate_stream(
+        self, prompt: str, max_tokens: Optional[int] = None
+    ) -> AsyncGenerator[str, None]:
+        """Generate a streaming response from the LLM.
         
-        settings = get_settings()
-        max_tokens = max_tokens or settings.max_tokens
+        Args:
+            prompt: The input prompt for the model.
+            max_tokens: Maximum number of tokens to generate.
+            
+        Yields:
+            str: Token chunks as they are generated.
+            
+        Raises:
+            RuntimeError: If model is not loaded.
+        """
+        if not self._provider:
+            raise RuntimeError("Provider not initialized. Call load_model() first.")
         
-        stream = self._llm(
-            prompt,
-            max_tokens=max_tokens,
-            temperature=settings.temperature,
-            stop=["User:", "\n\nUser:", "Human:", "\n\nHuman:"],
-            stream=True,
-        )
-        
-        for output in stream:
-            token = output["choices"][0]["text"]
-            if token:
-                yield token
+        async for token in self._provider.generate_stream(prompt, max_tokens):
+            yield token
     
-    def get_langchain_llm(self) -> LlamaCpp:
-        """Get LangChain LLM wrapper for chain integration."""
-        if not self._langchain_llm:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
-        return self._langchain_llm
+    def get_langchain_llm(self) -> Any:
+        """Get LangChain LLM wrapper for chain integration.
+        
+        Returns:
+            Any: LangChain-compatible LLM instance.
+            
+        Raises:
+            RuntimeError: If model is not loaded.
+        """
+        if not self._provider:
+            raise RuntimeError("Provider not initialized. Call load_model() first.")
+        
+        return self._provider.get_langchain_llm()
 
 
 # Global instance

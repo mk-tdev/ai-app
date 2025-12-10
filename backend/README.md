@@ -9,6 +9,16 @@ FastAPI backend with llama.cpp, LangGraph, LangChain, and ChromaDB.
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
+   ```
+      # Option 1: Fix venv (if possible)
+      python3 -m venv venv --clear
+      # Option 2: Create new venv
+      rm -rf venv
+      python3 -m venv venv
+      # Install all dependencies
+      source venv/bin/activate
+      pip install -r requirements.txt
+   ```
 
 2. **Install dependencies:**
    ```bash

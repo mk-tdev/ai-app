@@ -12,13 +12,26 @@ class Settings(BaseSettings):
     debug: bool = True
     verbose_llm: bool = False  # Control llama.cpp verbose output (ggml, metal, etc.)
     
-    # LLM settings
+    # Provider selection
+    provider_type: str = "llamacpp"  # Options: llamacpp, ollama, huggingface
+    
+    # LLM settings (common across providers)
+    temperature: float = 0.7
+    max_tokens: int = 512
+    
+    # LlamaCPP-specific settings
     model_path: str = str(Path(__file__).parent.parent / "models" / "model.gguf")
     n_ctx: int = 4096  # Context window size
     n_gpu_layers: int = 0  # Set to -1 for full GPU offload, 0 for CPU only
     n_threads: int = 4
-    temperature: float = 0.7
-    max_tokens: int = 512
+    
+    # Ollama-specific settings
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama2"  # Default model name
+    
+    # HuggingFace-specific settings
+    hf_model_name: str = "gpt2"  # HuggingFace model identifier
+    hf_api_token: str | None = None  # Optional API token for private models
     
     # ChromaDB settings
     data_dir: str = str(Path(__file__).parent.parent / "data")
