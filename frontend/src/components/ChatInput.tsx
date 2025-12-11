@@ -10,7 +10,7 @@ interface AttachedFile {
 }
 
 interface ChatInputProps {
-  onSend: (message: string, useRag: boolean) => void;
+  onSend: (message: string, useRag: boolean, useReasoning: boolean, maxHops: number) => void;
   onFileUpload: (file: File) => Promise<{ status: string; message: string }>;
   isLoading: boolean;
 }
@@ -18,13 +18,15 @@ interface ChatInputProps {
 export function ChatInput({ onSend, onFileUpload, isLoading }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [useRag, setUseRag] = useState(false);
+  const [useReasoning, setUseReasoning] = useState(false);
+  const [maxHops, setMaxHops] = useState(3);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = () => {
     if (message.trim() && !isLoading) {
-      onSend(message.trim(), useRag);
+      onSend(message.trim(), useRag, useReasoning, maxHops);
       setMessage('');
       
       // Reset textarea height
@@ -179,14 +181,46 @@ export function ChatInput({ onSend, onFileUpload, isLoading }: ChatInputProps) {
           </svg>
         </button>
       </div>
-      <label className="rag-toggle">
-        <input
-          type="checkbox"
-          checked={useRag}
-          onChange={(e) => setUseRag(e.target.checked)}
-        />
-        <span>Use RAG (search knowledge base)</span>
-      </label>
+      <div className="controls-container">
+        <label className="rag-toggle">
+          <input
+            type="checkbox"
+            checked={useRag}
+            onChange={(e) => setUseRag(e.target.checked)}
+          />
+          <span>Use RAG (search knowledge base)</span>
+        </label>
+        
+        <label className="rag-toggle">
+          <input
+            type="checkbox"
+            checked={useReasoning}
+            onChange={(e) => setUseReasoning(e.target.checked)}
+            disabled={!useRag}
+          />
+          <span>Use Multi-Hop Reasoning 🧠</span>
+        </label>
+        
+        {useReasoning && (
+          <div className="hop-slider">
+            <label>Max Reasoning Hops: {maxHops}</label>
+            <input
+              type="range"
+              min="1"
+              max="5"
+              value={maxHops}
+              onChange={(e) => setMaxHops(parseInt(e.target.value))}
+            />
+            <div className="hop-markers">
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

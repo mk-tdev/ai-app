@@ -25,7 +25,7 @@ interface UseChatReturn {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
-  sendMessage: (content: string, useRag?: boolean) => Promise<void>;
+  sendMessage: (content: string, useRag?: boolean, useReasoning?: boolean, maxHops?: number) => Promise<void>;
   uploadDocument: (file: File) => Promise<UploadResult>;
   clearMessages: () => void;
   sessionId: string | null;
@@ -98,7 +98,12 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     }
   }, [apiUrl]);
 
-  const sendMessage = useCallback(async (content: string, useRag: boolean = false) => {
+  const sendMessage = useCallback(async (
+    content: string,
+    useRag: boolean = false,
+    useReasoning: boolean = false,
+    maxHops: number = 3
+  ) => {
     if (!content.trim() || isLoading) return;
 
     setError(null);
@@ -144,6 +149,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           message: content.trim(),
           conversation_id: currentSessionId,
           use_rag: useRag,
+          use_reasoning: useReasoning,
+          max_hops: maxHops,
         }),
         signal: abortControllerRef.current.signal,
       });

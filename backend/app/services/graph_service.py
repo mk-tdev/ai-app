@@ -20,7 +20,10 @@ class ChatState(TypedDict):
     context: str
     response: str
     use_rag: bool
+    use_reasoning: bool  # Enable multi-hop reasoning
+    max_hops: int  # Maximum reasoning steps
     sources: list[str]
+    reasoning_chain: list[dict]  # Multi-hop reasoning steps
     conversation_history: list[dict]  # Chat history for context
 
 
@@ -63,27 +66,66 @@ If the context doesn't contain relevant information, you can still answer based 
 def retrieve_context(state: ChatState) -> ChatState:
     """Retrieve relevant context from ChromaDB if RAG is enabled."""
     if not state["use_rag"]:
-        return {**state, "context": "", "sources": []}
+        return {**state, "context": "", "sources": [], "reasoning_chain": []}
     
     try:
-        documents = rag_service.search(state["user_message"], n_results=3)
-        
-        if documents:
-            context_parts = []
-            sources = []
-            for i, doc in enumerate(documents, 1):
-                context_parts.append(f"[Document {i}]\n{doc['content']}")
-                sources.append(doc.get("id", f"doc_{i}"))
+        # Use multi-hop reasoning if enabled
+        if state.get("use_reasoning", False):
+            from app.services.reasoning_rag_service import reasoning_rag_service
             
-            return {
-                **state,
-                "context": "\n\n".join(context_parts),
-                "sources": sources,
-            }
+            logger.info("Using multi-hop reasoning for retrieval")
+            result = reasoning_rag_service.intelligent_search(
+                query=state["user_message"],
+                strategy="auto",
+                n_results=3,
+                max_hops=state.get("max_hops", 3),
+            )
+            
+            documents = result.get("documents", [])
+            reasoning_chain = result.get("reasoning_chain", [])
+            
+            if documents:
+                context_parts = []
+                sources = []
+                for i, doc in enumerate(documents, 1):
+                    context_parts.append(f"[Document {i}]\n{doc['content']}")
+                    sources.append(doc.get("id", f"doc_{i}"))
+                
+                # Add reasoning chain to context if available
+                if reasoning_chain:
+                    reasoning_summary = "\n\nReasoning Chain:\n" + "\n".join([
+                        f"Step {step['step_number']}: {step['question']} -> {step['answer']}"
+                        for step in reasoning_chain
+                    ])
+                    context_parts.append(reasoning_summary)
+                
+                return {
+                    **state,
+                    "context": "\n\n".join(context_parts),
+                    "sources": sources,
+                    "reasoning_chain": reasoning_chain,
+                }
+        else:
+            # Simple vector search
+            documents = rag_service.search(state["user_message"], n_results=3)
+            
+            if documents:
+                context_parts = []
+                sources = []
+                for i, doc in enumerate(documents, 1):
+                    context_parts.append(f"[Document {i}]\n{doc['content']}")
+                    sources.append(doc.get("id", f"doc_{i}"))
+                
+                return {
+                    **state,
+                    "context": "\n\n".join(context_parts),
+                    "sources": sources,
+                    "reasoning_chain": [],
+                }
     except Exception as e:
         logger.warning(f"Failed to retrieve context: {e}")
     
-    return {**state, "context": "", "sources": []}
+    return {**state, "context": "", "sources": [], "reasoning_chain": []}
 
 
 def generate_response(state: ChatState) -> ChatState:
@@ -135,7 +177,14 @@ class GraphService:
         return cls._graph
     
     @classmethod
-    def chat(cls, message: str, conversation_id: str = None, use_rag: bool = False) -> dict:
+    def chat(
+        cls,
+        message: str,
+        conversation_id: str = None,
+        use_rag: bool = False,
+        use_reasoning: bool = False,
+        max_hops: int = 3,
+    ) -> dict:
         """Run a chat through the graph."""
         from app.services.session_service import session_service
         
@@ -154,7 +203,10 @@ class GraphService:
             "context": "",
             "response": "",
             "use_rag": use_rag,
+            "use_reasoning": use_reasoning,
+            "max_hops": max_hops,
             "sources": [],
+            "reasoning_chain": [],
             "conversation_history": conversation_history,
         }
         
@@ -168,6 +220,8 @@ class GraphService:
             "message": result["response"],
             "conversation_id": result["conversation_id"],
             "sources": result.get("sources", []) if use_rag else None,
+            "reasoning_chain": result.get("reasoning_chain", []) if use_reasoning else None,
+            "strategy_used": "multi_hop" if use_reasoning and result.get("reasoning_chain") else "simple",
         }
     
     @classmethod

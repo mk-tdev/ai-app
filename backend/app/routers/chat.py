@@ -31,7 +31,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
     Non-streaming chat endpoint.
     
     Processes the message through the LangGraph workflow and returns
-    the complete response.
+    the complete response. Supports multi-hop reasoning for complex queries.
     """
     if not llm_service.is_loaded:
         raise HTTPException(
@@ -44,6 +44,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
             message=request.message,
             conversation_id=request.conversation_id,
             use_rag=request.use_rag,
+            use_reasoning=request.use_reasoning,
+            max_hops=request.max_hops,
         )
         
         return ChatResponse(
@@ -54,6 +56,54 @@ async def chat(request: ChatRequest) -> ChatResponse:
         
     except Exception as e:
         logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/reasoning", response_model=ChatResponse)
+async def chat_with_reasoning(request: ChatRequest):
+    """
+    Chat endpoint with full multi-hop reasoning chain.
+    
+    This endpoint returns the complete reasoning chain showing how
+    the answer was derived through multiple reasoning steps.
+    """
+    if not llm_service.is_loaded:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM model not loaded. Please ensure a model is available."
+        )
+    
+    try:
+        # Force reasoning mode and RAG
+        result = graph_service.chat(
+            message=request.message,
+            conversation_id=request.conversation_id,
+            use_rag=True,  # Multi-hop requires RAG
+            use_reasoning=True,  # Always use reasoning in this endpoint
+            max_hops=request.max_hops,
+        )
+        
+        from app.models.schemas import MultiHopChatResponse, ReasoningStepResponse
+        
+        # Convert reasoning chain to response models
+        reasoning_chain = None
+        if result.get("reasoning_chain"):
+            reasoning_chain = [
+                ReasoningStepResponse(**step)
+                for step in result["reasoning_chain"]
+            ]
+        
+        return MultiHopChatResponse(
+            message=result["message"],
+            conversation_id=result["conversation_id"],
+            sources=result.get("sources"),
+            reasoning_chain=reasoning_chain,
+            strategy_used=result.get("strategy_used"),
+            needs_multi_hop=bool(reasoning_chain),
+        )
+        
+    except Exception as e:
+        logger.error(f"Multi-hop reasoning error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

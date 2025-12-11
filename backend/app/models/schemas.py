@@ -22,6 +22,8 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User message")
     conversation_id: Optional[str] = Field(None, description="Conversation ID for context")
     use_rag: bool = Field(False, description="Whether to use RAG for context")
+    use_reasoning: bool = Field(False, description="Whether to use multi-hop reasoning")
+    max_hops: int = Field(3, ge=1, le=5, description="Maximum reasoning steps for multi-hop")
 
 
 class ChatResponse(BaseModel):
@@ -82,3 +84,22 @@ class ConversationHistory(BaseModel):
     session_id: str
     messages: list[SessionMessage]
     total_messages: int
+
+
+class ReasoningStepResponse(BaseModel):
+    """A single step in multi-hop reasoning chain."""
+    step_number: int
+    question: str
+    answer: str
+    sources: list[dict]
+    confidence: float = 0.0
+
+
+class MultiHopChatResponse(BaseModel):
+    """Enhanced chat response with multi-hop reasoning."""
+    message: str
+    conversation_id: str
+    sources: Optional[list[str]] = None
+    reasoning_chain: Optional[list[ReasoningStepResponse]] = None
+    strategy_used: Optional[str] = None
+    needs_multi_hop: Optional[bool] = False
