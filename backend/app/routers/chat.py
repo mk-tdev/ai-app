@@ -111,6 +111,8 @@ async def stream_generator(
     message: str,
     conversation_id: str = None,
     use_rag: bool = False,
+    use_reasoning: bool = False,
+    max_hops: int = 3,
 ) -> AsyncGenerator[dict, None]:
     """Generate SSE events for streaming response."""
     try:
@@ -125,6 +127,8 @@ async def stream_generator(
             message=message,
             conversation_id=conversation_id,
             use_rag=use_rag,
+            use_reasoning=use_reasoning,
+            max_hops=max_hops,
         ):
             yield {
                 "event": "token",
@@ -170,6 +174,8 @@ async def chat_stream(request: ChatRequest):
             message=request.message,
             conversation_id=request.conversation_id,
             use_rag=request.use_rag,
+            use_reasoning=request.use_reasoning,
+            max_hops=request.max_hops,
         )
     )
 

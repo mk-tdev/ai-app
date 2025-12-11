@@ -230,9 +230,12 @@ class GraphService:
         message: str,
         conversation_id: str = None,
         use_rag: bool = False,
+        use_reasoning: bool = False,
+        max_hops: int = 3,
     ) -> AsyncGenerator[str, None]:
         """Stream a chat response."""
         from app.services.session_service import session_service
+        from app.services.reasoning_rag_service import reasoning_rag_service
         
         conv_id = conversation_id or str(uuid.uuid4())
         
@@ -243,14 +246,36 @@ class GraphService:
         
         # Get context if RAG is enabled
         context = ""
+        reasoning_context = ""
         if use_rag:
             try:
-                context = rag_service.get_context(message, n_results=3)
+                if use_reasoning:
+                    # Use intelligent search with multi-hop reasoning
+                    result = reasoning_rag_service.intelligent_search(
+                        query=message,
+                        max_hops=max_hops,
+                        force_strategy="multi_hop" if use_reasoning else None
+                    )
+                    context = result.get("context", "")
+                    
+                    # Add reasoning chain to context if available
+                    if result.get("reasoning_chain"):
+                        reasoning_steps = []
+                        for step in result["reasoning_chain"]:
+                            reasoning_steps.append(
+                                f"Step {step['step_number']}: {step['question']}\n"
+                                f"Finding: {step['answer'][:200]}..."
+                            )
+                        reasoning_context = "\n\n[Reasoning Process]\n" + "\n\n".join(reasoning_steps)
+                else:
+                    # Use simple RAG
+                    context = rag_service.get_context(message, n_results=3)
             except Exception as e:
                 logger.warning(f"Failed to get RAG context: {e}")
         
-        # Create prompt with conversation history
-        system_prompt = create_system_prompt(context, conversation_history)
+        # Create prompt with conversation history and reasoning
+        full_context = context + reasoning_context if reasoning_context else context
+        system_prompt = create_system_prompt(full_context, conversation_history)
         prompt = f"""{system_prompt}
 
 User: {message}

@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # Embedding settings
     embedding_model: str = "all-MiniLM-L6-v2"
     
+    # OCR settings
+    use_ocr: bool = True  # Enable/disable OCR for scanned PDFs
+    extract_images: bool = True  # Enable/disable image extraction from PDFs
+    ocr_language: str = "eng"  # Tesseract language code
+    ocr_dpi: int = 300  # DPI for PDF to image conversion
+    
     # CORS settings
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     

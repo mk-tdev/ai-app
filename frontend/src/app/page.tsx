@@ -4,7 +4,17 @@ import { useChat } from '@/hooks/useChat';
 import { MessageList, ChatInput } from '@/components';
 
 export default function Home() {
-  const { messages, isLoading, error, sendMessage, uploadDocument, newConversation, sessionId } = useChat({
+  const { 
+    messages, 
+    isLoading, 
+    error, 
+    sendMessage, 
+    stopGeneration,
+    clearChat,
+    uploadDocument, 
+    newConversation, 
+    sessionId 
+  } = useChat({
     apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   });
 
@@ -54,31 +64,87 @@ export default function Home() {
             )}
           </div>
           
-          <button
-            onClick={newConversation}
-            style={{
-              padding: '8px 18px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
-            }}
-          >
-            ✨ New Conversation
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {isLoading && (
+              <button
+                onClick={stopGeneration}
+                style={{
+                  padding: '8px 18px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
+                }}
+              >
+                ⏹️ Stop
+              </button>
+            )}
+            
+            <button
+              onClick={clearChat}
+              style={{
+                padding: '8px 18px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 158, 11, 0.3)';
+              }}
+            >
+              🗑️ Clear Chat
+            </button>
+            
+            <button
+              onClick={newConversation}
+              style={{
+                padding: '8px 18px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
+              }}
+            >
+              ✨ New Conversation
+            </button>
+          </div>
         </div>
 
         {error && (

@@ -26,6 +26,8 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   sendMessage: (content: string, useRag?: boolean, useReasoning?: boolean, maxHops?: number) => Promise<void>;
+  stopGeneration: () => void;
+  clearChat: () => void;
   uploadDocument: (file: File) => Promise<UploadResult>;
   clearMessages: () => void;
   sessionId: string | null;
@@ -255,6 +257,26 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     setError(null);
   }, []);
 
+  const stopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+  }, []);
+
+  const clearChat = useCallback(() => {
+    // Stop any ongoing generation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Clear all messages
+    setMessages([]);
+    setError(null);
+    setIsLoading(false);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -269,6 +291,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     isLoading,
     error,
     sendMessage,
+    stopGeneration,
+    clearChat,
     uploadDocument,
     clearMessages,
     sessionId,
